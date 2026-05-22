@@ -1,1 +1,121 @@
-# MRZ-Recognition-Pipeline
+# MRZ Recognition Pipeline
+
+Автоматическое распознавание машиночитаемой зоны (MRZ) паспортов.  
+Пайплайн скачивает изображения, детектирует зону MRZ через YOLOv8 OBB, распознаёт текст через PaddleOCR и экспортирует результаты в CSV.
+
+## Как это работает
+
+```
+data.json
+    │
+    ▼
+[downloading.py]  ──→  downloaded_photos/
+    │                  (исходные изображения)
+    ▼
+[YOLO_detecting.py]  ──→  mrz_crops/
+    │                      (вырезанные зоны MRZ)
+    ▼
+[ocr_extractor.py]
+    │   1. Предобработка 
+    │   2. OCR (PaddleOCR PP-OCRv5)
+    │   3. Очистка (только символы ICAO)
+    │   4. Парсинг полей по позициям ICAO 9303
+    ▼
+result.csv
+```
+
+---
+
+## Структура проекта
+
+```
+.
+├── main.py               # Точка входа, оркестрация пайплайна
+├── downloading.py        # Загрузка фото из data.json
+├── YOLO_detecting.py     # Детекция MRZ через YOLOv8 OBB
+├── ocr_extractor.py      # OCR и парсинг MRZ
+│
+├── mrz.pt                # Веса YOLO-модели 
+├── data.json             # Список изображений для загрузки
+│
+├── downloaded_photos/    # Создаётся автоматически
+├── mrz_crops/            # Создаётся автоматически
+├── requests_cache/       # Создаётся автоматически
+└── result.csv            # Результат распознавания
+```
+
+---
+
+## Требования
+
+- Python 3.10+
+- CUDA (опционально, для ускорения YOLO и PaddleOCR)
+
+### Зависимости
+
+```
+ultralytics
+paddleocr
+opencv-python
+numpy
+requests
+requests-cache
+tqdm
+```
+
+---
+
+## Установка
+
+```bash
+git clone <repo-url>
+cd <repo-dir>
+
+python -m venv .venv
+source .venv/bin/activate      # Linux / macOS
+# .venv\Scripts\activate       # Windows
+
+pip install -r requirements.txt
+```
+
+## Быстрый старт
+
+### 1. Подготовьте входные данные - `data.json`
+
+### 2. Запустите пайплайн
+
+```bash
+python main.py
+```
+
+Пайплайн автоматически:
+- скачает изображения,
+- вырежет зоны MRZ,
+- распознает и распарсит поля,
+- сохранит результат в `result.csv`.
+
+## Входные данные
+
+Файл `data.json` — список изображений для обработки:
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `filename` | string | Имя файла для сохранения |
+| `url` | string | Прямая ссылка на изображение |
+
+## Выходные данные
+
+Файл `result.csv` содержит распозанные данные:
+
+| Поле | Описание | Пример |
+|------|----------|--------|
+| `doc_type` | Тип документа | `P` |
+| `issuing_country` | Страна выдачи (3 буквы) | `RUS` |
+| `surname` | Фамилия | `IVANOV` |
+| `given_names` | Имя и отчество | `IVAN IVANOVICH` |
+| `doc_number` | Номер документа | `700123456` |
+| `nationality` | Гражданство | `RUS` |
+| `birth_date` | Дата рождения | `1990-06-15` |
+| `sex` | Пол | `M` / `F` |
+| `expiry_date` | Срок действия | `2030-01-01` |
+| `control_numbers` | Контрольные цифры | `123456789` |
