@@ -1,0 +1,7 @@
+ultralytics
+paddleocr
+opencv-python
+numpy
+requests
+requests-cache
+tqdm
